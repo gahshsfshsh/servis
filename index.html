@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Автосервис</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Профессиональный автосервис</h1>
+            <p>Качественный ремонт и обслуживание автомобилей в Москве!</p>
+        </header>
+        <!-- Каталог услуг -->
+        <div id="services">
+            <h2>Услуги</h2>
+            <div class="service" data-service-id="oil-change">
+                <img src="images/service1.png" alt="Замена масла">
+                <div class="service-info">
+                    <p class="service-name">Замена масла</p>
+                    <p class="service-price">1500 руб.</p>
+                </div>
+                <button class="add-to-cart-btn" onclick="addToCart('oil-change')">Записаться</button>
+            </div>
+            <div class="service" data-service-id="brake-repair">
+                <img src="images/service2.png" alt="Ремонт тормозной системы">
+                <div class="service-info">
+                    <p class="service-name">Ремонт тормозной системы</p>
+                    <p class="service-price">5000 руб.</p>
+                </div>
+                <button class="add-to-cart-btn" onclick="addToCart('brake-repair')">Записаться</button>
+            </div>
+            <div class="service" data-service-id="engine-diagnostic">
+                <img src="images/service3.png" alt="Диагностика двигателя">
+                <div class="service-info">
+                    <p class="service-name">Диагностика двигателя</p>
+                    <p class="service-price">3500 руб.</p>
+                </div>
+                <button class="add-to-cart-btn" onclick="addToCart('engine-diagnostic')">Записаться</button>
+            </div>
+            <div class="service" data-service-id="wheel-alignment">
+                <img src="images/service4.png" alt="Шиномонтаж">
+                <div class="service-info">
+                    <p class="service-name">Шиномонтаж</p>
+                    <p class="service-price">2000 руб.</p>
+                </div>
+                <button class="add-to-cart-btn" onclick="addToCart('wheel-alignment')">Записаться</button>
+            </div>
+        </div>
+        <!-- Корзина записей -->
+        <div id="cart" class="cart">
+            <h2>Записи</h2>
+            <ul id="cart-items"></ul>
+            <p class="total">Итого: <span id="total-price">0 руб.</span></p>
+            <button id="checkout-btn" onclick="openCheckoutForm()" style="display: none;">Оформить запись</button>
+        </div>
+        <!-- Форма записи -->
+        <div id="checkout-form" class="checkout-form" style="display: none;">
+            <h2>Оформление записи</h2>
+            <form id="order-form">
+                <label for="address">Адрес автосервиса:</label>
+                <input type="text" id="address" name="address" required placeholder="Выберите адрес">
+                <div id="map" style="width: 100%; height: 400px; margin-top: 10px;"></div>
+                <label for="phone">Телефон:</label>
+                <input type="tel" id="phone" name="phone" required placeholder="+7 (XXX) XXX-XX-XX">
+                <label for="appointment-time">Время записи:</label>
+                <input type="datetime-local" id="appointment-time" name="appointment-time" required>
+                <button type="submit">Подтвердить запись</button>
+            </form>
+        </div>
+        <!-- Отзывы -->
+        <div id="reviews" class="reviews">
+            <h2>Отзывы</h2>
+            <div class="review">
+                <p class="review-text">Отличный сервис! Все сделали быстро и качественно.</p>
+                <p class="review-author">— Иванов Иван</p>
+            </div>
+            <div class="review">
+                <p class="review-text">Хорошие специалисты, рекомендую!</p>
+                <p class="review-author">— Петров Петр</p>
+            </div>
+            <button id="add-review-btn" onclick="openReviewForm()">Добавить отзыв</button>
+        </div>
+        <!-- Форма отзыва -->
+        <div id="review-form" class="review-form" style="display: none;">
+            <h2>Добавить отзыв</h2>
+            <form id="review-form-submit">
+                <label for="review-text">Текст отзыва:</label>
+                <textarea id="review-text" name="review-text" required rows="4"></textarea>
+                <label for="review-author">Ваше имя:</label>
+                <input type="text" id="review-author" name="review-author" required placeholder="Введите ваше имя">
+                <button type="submit">Отправить отзыв</button>
+            </form>
+        </div>
+        <!-- Подтверждение записи -->
+        <div id="confirmation" class="confirmation" style="display: none;">
+            <h2>Запись успешно оформлена!</h2>
+            <p>Спасибо за вашу заявку! Мы свяжемся с вами в ближайшее время.</p>
+            <button onclick="closeConfirmation()">Вернуться к услугам</button>
+        </div>
+    </div>
+    <script>
+        // Инициализация корзины записей
+        let cart = {};
+        let totalPrice = 0;
+
+        // Добавление услуги в корзину
+        function addToCart(serviceId) {
+            if (!cart[serviceId]) {
+                cart[serviceId] = { quantity: 0, price: getServicePrice(serviceId) };
+            }
+            cart[serviceId].quantity += 1;
+            updateCart();
+        }
+
+        // Обновление корзины
+        function updateCart() {
+            const cartItemsList = document.getElementById("cart-items");
+            const totalPriceElement = document.getElementById("total-price");
+            const checkoutBtn = document.getElementById("checkout-btn");
+
+            cartItemsList.innerHTML = "";
+            totalPrice = 0;
+
+            for (const serviceId in cart) {
+                const service = cart[serviceId];
+                totalPrice += service.price * service.quantity;
+
+                const li = document.createElement("li");
+                li.textContent = `${getServiceName(serviceId)} x ${service.quantity} = ${service.price * service.quantity} руб.`;
+                cartItemsList.appendChild(li);
+            }
+
+            totalPriceElement.textContent = `${totalPrice} руб.`;
+
+            if (totalPrice > 0) {
+                checkoutBtn.style.display = "block";
+            } else {
+                checkoutBtn.style.display = "none";
+            }
+        }
+
+        // Открытие формы записи
+        function openCheckoutForm() {
+            document.getElementById("checkout-form").style.display = "block";
+            document.getElementById("cart").style.display = "none"; // Скрываем корзину
+            initYandexMap(); // Инициализация карты
+        }
+
+        // Закрытие подтверждения записи
+        function closeConfirmation() {
+            document.getElementById("confirmation").style.display = "none";
+            document.getElementById("cart").style.display = "block"; // Показываем корзину снова
+            window.Telegram.WebApp.close(); // Закрываем Web App после завершения
+        }
+
+        // Инициализация Яндекс.Карты
+        function initYandexMap() {
+            ymaps.ready(function () {
+                var myMap = new ymaps.Map("map", {
+                    center: [55.75396, 37.620393], // Координаты центра карты (Москва)
+                    zoom: 10
+                });
+
+                // Добавляем маркер на карту
+                var myPlacemark = new ymaps.Placemark([55.75396, 37.620393], {}, {
+                    draggable: true // Маркер можно перемещать
+                });
+
+                myMap.geoObjects.add(myPlacemark);
+
+                // Обработка события перемещения маркера
+                myPlacemark.events.add('dragend', function () {
+                    var coords = myPlacemark.geometry.getCoordinates();
+                    document.getElementById("address").value = `Координаты: ${coords}`;
+                });
+            });
+
+            // Инициализация автодополнения адреса
+            initAddressSearch();
+        }
+
+        // Инициализация автодополнения адреса
+        function initAddressSearch() {
+            ymaps.ready(function () {
+                var suggestView = new ymaps.SuggestView('address'); // Привязка к input#address
+            });
+        }
+
+        // Обработка отправки формы записи
+        document.getElementById("order-form").addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const address = document.getElementById("address").value;
+            const phone = document.getElementById("phone").value;
+            const appointmentTime = document.getElementById("appointment-time").value;
+
+            if (!address || !phone || !appointmentTime) {
+                alert("Пожалуйста, заполните все поля!");
+                return;
+            }
+
+            const orderDetails = {
+                services: cart,
+                total_price: totalPrice,
+                address,
+                phone,
+                appointment_time: appointmentTime
+            };
+
+            try {
+                // Отправка данных администратору
+                await sendOrderToAdmin(orderDetails);
+
+                // Показываем подтверждение записи
+                document.getElementById("checkout-form").style.display = "none";
+                document.getElementById("confirmation").style.display = "block";
+
+                // Очищаем корзину
+                cart = {};
+                totalPrice = 0;
+                updateCart();
+
+                // Скрываем клавиатуру
+                window.Telegram.WebApp.hideKeyboard();
+            } catch (error) {
+                console.error("Ошибка при отправке данных:", error);
+                alert("Произошла ошибка при оформлении записи.");
+            }
+        });
+
+        // Отправка данных администратору
+        async function sendOrderToAdmin(orderDetails) {
+            const adminMessage = JSON.stringify(orderDetails);
+            window.Telegram.WebApp.sendData(adminMessage);
+        }
+
+        // Получение цены услуги
+        function getServicePrice(serviceId) {
+            const prices = {
+                oilChange: 1500, // Замена масла
+                brakeRepair: 5000, // Ремонт тормозной системы
+                engineDiagnostic: 3500, // Диагностика двигателя
+                wheelAlignment: 2000 // Шиномонтаж
+            };
+            return prices[serviceId] || 0;
+        }
+
+        // Получение названия услуги
+        function getServiceName(serviceId) {
+            const names = {
+                oilChange: "Замена масла",
+                brakeRepair: "Ремонт тормозной системы",
+                engineDiagnostic: "Диагностика двигателя",
+                wheelAlignment: "Шиномонтаж"
+            };
+            return names[serviceId] || "Неизвестная услуга";
+        }
+
+        // Открытие формы отзыва
+        function openReviewForm() {
+            document.getElementById("review-form").style.display = "block";
+        }
+
+        // Обработка отправки отзыва
+        document.getElementById("review-form-submit").addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const reviewText = document.getElementById("review-text").value;
+            const reviewAuthor = document.getElementById("review-author").value;
+
+            if (!reviewText || !reviewAuthor) {
+                alert("Пожалуйста, заполните все поля!");
+                return;
+            }
+
+            const reviewDetails = {
+                text: reviewText,
+                author: reviewAuthor
+            };
+
+            try {
+                // Отправка отзыва администратору
+                await sendReviewToAdmin(reviewDetails);
+
+                // Очищаем форму отзыва
+                document.getElementById("review-text").value = "";
+                document.getElementById("review-author").value = "";
+
+                // Скрываем форму отзыва
+                document.getElementById("review-form").style.display = "none";
+                alert("Спасибо за ваш отзыв!");
+            } catch (error) {
+                console.error("Ошибка при отправке отзыва:", error);
+                alert("Произошла ошибка при отправке отзыва.");
+            }
+        });
+
+        // Отправка отзыва администратору
+        async function sendReviewToAdmin(reviewDetails) {
+            const adminMessage = JSON.stringify(reviewDetails);
+            window.Telegram.WebApp.sendData(adminMessage);
+        }
+    </script>
+</body>
+</html>
