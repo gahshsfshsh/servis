@@ -17,7 +17,7 @@ TELEGRAM_BOT_TOKEN = "7935450995:AAF5ka7X3T9Bub0Bq6ysVnB0HrKm3ujUtns"
 ADMIN_CHAT_ID = 1094905671
 
 # URL вашего Web App
-WEB_APP_URL = "https://your-autoservice-site.github.io/autoservice/"
+WEB_APP_URL = "https://gahshsfshsh.github.io/servis/"
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
